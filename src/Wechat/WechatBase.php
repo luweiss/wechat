@@ -25,5 +25,5 @@ abstract class WechatBase
      * @param array $result
      * @return array
      */
-    abstract public function getClientResult($result);
+    abstract protected function getClientResult($result);
 }

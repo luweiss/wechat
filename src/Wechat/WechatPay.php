@@ -30,7 +30,7 @@ class WechatPay extends WechatBase
      * @return array
      * @throws WechatException
      */
-    public function getClientResult($result)
+    protected function getClientResult($result)
     {
         if (!isset($result['return_code'])) {
             throw new WechatException(
@@ -54,6 +54,38 @@ class WechatPay extends WechatBase
     }
 
     /**
+     * @param $api
+     * @param $args
+     * @return array
+     * @throws WechatException
+     */
+    protected function send($api, $args)
+    {
+        $args['sign'] = $this->makeSign($args);
+        $xml = WechatHelper::arrayToXml($args);
+        $res = $this->getClient()->setDataType(WechatHttpClient::DATA_TYPE_XML)->post($api, $xml);
+        return $this->getClientResult($res);
+    }
+
+    /**
+     * @param $api
+     * @param $args
+     * @return array
+     * @throws WechatException
+     */
+    protected function sendWithPem($api, $args)
+    {
+        $args['sign'] = $this->makeSign($args);
+        $xml = WechatHelper::arrayToXml($args);
+        $res = $this->getClient()
+            ->setDataType(WechatHttpClient::DATA_TYPE_XML)
+            ->setCertPemFile($this->certPemFile)
+            ->setKeyPemFile($this->keyPemFile)
+            ->post($api, $xml);
+        return $this->getClientResult($res);
+    }
+
+    /**
      *
      * 统一下单, <a href="https://pay.weixin.qq.com/wiki/doc/api/wxa/wxa_api.php?chapter=9_1">
      * https://pay.weixin.qq.com/wiki/doc/api/wxa/wxa_api.php?chapter=9_1</a>
@@ -65,10 +97,7 @@ class WechatPay extends WechatBase
     public function unifiedOrder($args)
     {
         $api = 'https://api.mch.weixin.qq.com/pay/unifiedorder';
-        $args['sign'] = $this->makeSign($args);
-        $xml = WechatHelper::arrayToXml($args);
-        $res = $this->getClient()->setDataType(WechatHttpClient::DATA_TYPE_XML)->post($api, $xml);
-        return $this->getClientResult($res);
+        return $this->send($api, $args);
     }
 
     /**
@@ -83,10 +112,7 @@ class WechatPay extends WechatBase
     public function orderQuery($args)
     {
         $api = 'https://api.mch.weixin.qq.com/pay/orderquery';
-        $args['sign'] = $this->makeSign($args);
-        $xml = WechatHelper::arrayToXml($args);
-        $res = $this->getClient()->setDataType(WechatHttpClient::DATA_TYPE_XML)->post($api, $xml);
-        return $this->getClientResult($res);
+        return $this->send($api, $args);
     }
 
     /**
@@ -101,10 +127,7 @@ class WechatPay extends WechatBase
     public function closeOrder($args)
     {
         $api = 'https://api.mch.weixin.qq.com/pay/closeorder';
-        $args['sign'] = $this->makeSign($args);
-        $xml = WechatHelper::arrayToXml($args);
-        $res = $this->getClient()->setDataType(WechatHttpClient::DATA_TYPE_XML)->post($api, $xml);
-        return $this->getClientResult($res);
+        return $this->send($api, $args);
     }
 
     /**
@@ -119,14 +142,7 @@ class WechatPay extends WechatBase
     public function refund($args)
     {
         $api = 'https://api.mch.weixin.qq.com/secapi/pay/refund';
-        $args['sign'] = $this->makeSign($args);
-        $xml = WechatHelper::arrayToXml($args);
-        $res = $this->getClient()
-            ->setDataType(WechatHttpClient::DATA_TYPE_XML)
-            ->setCertPemFile($this->certPemFile)
-            ->setKeyPemFile($this->keyPemFile)
-            ->post($api, $xml);
-        return $this->getClientResult($res);
+        return $this->sendWithPem($api, $args);
     }
 
     /**
@@ -141,10 +157,67 @@ class WechatPay extends WechatBase
     public function refundQuery($args)
     {
         $api = 'https://api.mch.weixin.qq.com/pay/refundquery';
-        $args['sign'] = $this->makeSign($args);
-        $xml = WechatHelper::arrayToXml($args);
-        $res = $this->getClient()->setDataType(WechatHttpClient::DATA_TYPE_XML)->post($api, $xml);
-        return $this->getClientResult($res);
+        return $this->send($api, $args);
+    }
+
+    /**
+     *
+     * 企业付款, <a href="https://pay.weixin.qq.com/wiki/doc/api/tools/mch_pay.php?chapter=14_2">
+     * https://pay.weixin.qq.com/wiki/doc/api/tools/mch_pay.php?chapter=14_2</a>
+     *
+     * @param array $args
+     * @return array
+     * @throws WechatException
+     */
+    public function transfers($args)
+    {
+        $api = 'https://api.mch.weixin.qq.com/mmpaymkttransfers/promotion/transfers';
+        return $this->sendWithPem($api, $args);
+    }
+
+    /**
+     *
+     * 查询企业付款, <a href="https://pay.weixin.qq.com/wiki/doc/api/tools/mch_pay.php?chapter=14_3">
+     * https://pay.weixin.qq.com/wiki/doc/api/tools/mch_pay.php?chapter=14_3</a>
+     *
+     * @param array $args
+     * @return array
+     * @throws WechatException
+     */
+    public function getTransferInfo($args)
+    {
+        $api = '	https://api.mch.weixin.qq.com/mmpaymkttransfers/gettransferinfo';
+        return $this->sendWithPem($api, $args);
+    }
+
+    /**
+     *
+     * 企业付款到银行卡, <a href="https://pay.weixin.qq.com/wiki/doc/api/tools/mch_pay.php?chapter=24_2">
+     * https://pay.weixin.qq.com/wiki/doc/api/tools/mch_pay.php?chapter=24_2</a>
+     *
+     * @param array $args
+     * @return array
+     * @throws WechatException
+     */
+    public function payBank($args)
+    {
+        $api = 'https://api.mch.weixin.qq.com/mmpaysptrans/pay_bank';
+        return $this->sendWithPem($api, $args);
+    }
+
+    /**
+     *
+     * 查询企业付款到银行卡, <a href="https://pay.weixin.qq.com/wiki/doc/api/tools/mch_pay.php?chapter=24_3">
+     * https://pay.weixin.qq.com/wiki/doc/api/tools/mch_pay.php?chapter=24_3</a>
+     *
+     * @param array $args
+     * @return array
+     * @throws WechatException
+     */
+    public function queryBank($args)
+    {
+        $api = 'https://api.mch.weixin.qq.com/mmpaysptrans/query_bank';
+        return $this->sendWithPem($api, $args);
     }
 
     /**
@@ -179,7 +252,7 @@ class WechatPay extends WechatBase
      * @param string $signType
      * @return string
      */
-    private function makeSign($args, $signType = self::SIGN_TYPE_MD5)
+    public function makeSign($args, $signType = self::SIGN_TYPE_MD5)
     {
         if (isset($args['sign'])) {
             unset($args['sign']);
