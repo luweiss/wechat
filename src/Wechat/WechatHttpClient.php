@@ -90,6 +90,7 @@ class WechatHttpClient
      */
     private function curlSend($args, $type)
     {
+        $errorCodes = require __DIR__ . '/errors.php';
         try {
             $curl = $this->curl;
             if ($type === 'post') {
@@ -112,9 +113,17 @@ class WechatHttpClient
                     throw new WechatException('微信接口返回的结果不是有效的xml类型数据。Body: ' . $body);
                 }
             }
+            if (isset($result['errcode']) && $result['errcode'] !== 0) {
+                $errMsg = isset($errorCodes[$result['errcode']]) ?
+                    $errorCodes[$result['errcode']]
+                    : (isset($result['errmsg']) ? $result['errmsg'] : '');
+                throw new WechatException('errCode ' . $result['errcode'] . ($errMsg ? (', ' . $errMsg) : ''));
+            }
             return $result;
         } catch (CurlException $exception) {
             throw new WechatException($exception->getMessage(), 0, $exception);
+        } catch (WechatException $exception) {
+            throw $exception;
         }
     }
 }
