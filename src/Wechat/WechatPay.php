@@ -25,8 +25,17 @@ class WechatPay extends WechatBase
     public $certPemFile;
     public $keyPemFile;
 
-    public function __construct($args)
+    /**
+     * WechatPay constructor.
+     * @param array $config ['appId', 'mchId', 'key', 'certPemFile', 'keyPemFile']
+     */
+    public function __construct($config = [])
     {
+        foreach ($config as $name => $value) {
+            if (property_exists($this, $name)) {
+                $this->$name = $value;
+            }
+        }
     }
 
     /**
