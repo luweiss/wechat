@@ -37,6 +37,7 @@ class Wechat extends WechatBase
     public $cache;
 
     private $accessToken;
+    private $accessTokenOk;
 
     /**
      * Wechat constructor.
@@ -117,6 +118,7 @@ class Wechat extends WechatBase
     }
 
     /**
+     * 获取accessToken
      * @param bool $refresh 是否刷新access token，不从缓存获取
      * @return string
      * @throws WechatException
@@ -135,7 +137,7 @@ class Wechat extends WechatBase
         $cacheKey = 'ACCESS_TOKEN_OF_APPID-' . $this->appId;
         if (!$refresh) {
             $this->accessToken = $this->cache->fetch($cacheKey);
-            if ($this->accessToken) {
+            if ($this->accessToken && $this->checkAccessToken()) {
                 return $this->accessToken;
             }
         }
@@ -146,5 +148,32 @@ class Wechat extends WechatBase
         $this->accessToken = $res['access_token'];
         $this->cache->save($cacheKey, $this->accessToken, 7000);
         return $this->accessToken;
+    }
+
+    /**
+     * 检查accessToken有效性，若有效，则缓存3分钟
+     * @return bool|mixed
+     */
+    private function checkAccessToken()
+    {
+        if (!$this->accessToken)
+            return false;
+        if ($this->accessTokenOk) {
+            return $this->accessTokenOk;
+        }
+        $cacheKey = 'CHECK_ACCESS_TOKEN_OF_TOKEN-' . $this->accessToken;
+        $this->accessTokenOk = $this->cache->fetch($cacheKey);
+        if ($this->accessTokenOk) {
+            return $this->accessTokenOk;
+        }
+        $api = "https://api.weixin.qq.com/cgi-bin/getcallbackip?access_token={$this->accessToken}";
+        try {
+            $this->getClient()->get($api);
+            $this->accessTokenOk = true;
+            $this->cache->save($cacheKey, true, 180);
+        } catch (\Exception $e) {
+            $this->accessTokenOk = false;
+        }
+        return $this->accessTokenOk;
     }
 }
