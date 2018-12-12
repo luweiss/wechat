@@ -7,7 +7,8 @@
   "type": "library",
   "require": {
     "php": ">=5.4",
-    "luweiss/curl": "~0.1.0"
+    "doctrine/cache": "~1.5",
+    "luweiss/curl": "~0.1"
   },
   "authors": [
     {
