@@ -14,6 +14,10 @@ namespace luweiss\Wechat;
 class WechatPay extends WechatBase
 {
     const SIGN_TYPE_MD5 = 'MD5';
+    const TRADE_TYPE_JSAPI = 'JSAPI';
+    const TRADE_TYPE_NATIVE = 'NATIVE';
+    const TRADE_TYPE_APP = 'APP';
+    const TRADE_TYPE_MWEB = 'MWEB';
 
     public $appId;
     public $mchId;
@@ -61,6 +65,9 @@ class WechatPay extends WechatBase
      */
     protected function send($api, $args)
     {
+        $args['appid'] = !empty($args['appid']) ? $args['appid'] : $this->appId;
+        $args['mch_id'] = !empty($args['mch_id']) ? $args['mch_id'] : $this->mchId;
+        $args['nonce_str'] = !empty($args['nonce_str']) ? $args['nonce_str'] : md5(uniqid());
         $args['sign'] = $this->makeSign($args);
         $xml = WechatHelper::arrayToXml($args);
         $res = $this->getClient()->setDataType(WechatHttpClient::DATA_TYPE_XML)->post($api, $xml);
@@ -75,6 +82,9 @@ class WechatPay extends WechatBase
      */
     protected function sendWithPem($api, $args)
     {
+        $args['appid'] = !empty($args['appid']) ? $args['appid'] : $this->appId;
+        $args['mch_id'] = !empty($args['mch_id']) ? $args['mch_id'] : $this->mchId;
+        $args['nonce_str'] = !empty($args['nonce_str']) ? $args['nonce_str'] : md5(uniqid());
         $args['sign'] = $this->makeSign($args);
         $xml = WechatHelper::arrayToXml($args);
         $res = $this->getClient()
@@ -96,6 +106,7 @@ class WechatPay extends WechatBase
      */
     public function unifiedOrder($args)
     {
+        $args['spbill_create_ip'] = !empty($args['spbill_create_ip']) ? $args['spbill_create_ip'] : '127.0.0.1';
         $api = 'https://api.mch.weixin.qq.com/pay/unifiedorder';
         return $this->send($api, $args);
     }
@@ -258,13 +269,15 @@ class WechatPay extends WechatBase
             unset($args['sign']);
         }
         ksort($args);
+        $string = '';
         foreach ($args as $i => $arg) {
             if ($args === null || $arg === '') {
-                unset($args[$i]);
+                continue;
+            } else {
+                $string .= ($i . '=' . $arg . '&');
             }
         }
-        $string = http_build_query($args);
-        $string = $string . "&key={$this->key}";
+        $string = $string . "key={$this->key}";
         $string = md5($string);
         $result = strtoupper($string);
         return $result;
