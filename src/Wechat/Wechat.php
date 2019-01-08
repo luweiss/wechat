@@ -14,15 +14,12 @@ namespace luweiss\Wechat;
 use Doctrine\Common\Cache\ApcuCache;
 use Doctrine\Common\Cache\Cache;
 use Doctrine\Common\Cache\FilesystemCache;
-use Doctrine\Common\Cache\MemcacheCache;
 use Doctrine\Common\Cache\MemcachedCache;
 use Doctrine\Common\Cache\RedisCache;
-use luweiss\Curl\Curl;
 
 /**
  * Class Wechat
  * @package luweiss\Wechat
- * @property Curl $curl
  * @property Cache $cache
  */
 class Wechat extends WechatBase

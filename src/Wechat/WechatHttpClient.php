@@ -12,7 +12,6 @@ namespace luweiss\Wechat;
 
 
 use GuzzleHttp\Client;
-use GuzzleHttp\Exception\ClientException;
 
 /**
  * Class WechatHttpClient
