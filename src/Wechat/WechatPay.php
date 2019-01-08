@@ -91,8 +91,6 @@ class WechatPay extends WechatBase
      */
     protected function sendWithPem($api, $args)
     {
-        $args['appid'] = !empty($args['appid']) ? $args['appid'] : $this->appId;
-        $args['mch_id'] = !empty($args['mch_id']) ? $args['mch_id'] : $this->mchId;
         $args['nonce_str'] = !empty($args['nonce_str']) ? $args['nonce_str'] : md5(uniqid());
         $args['sign'] = $this->makeSign($args);
         $xml = WechatHelper::arrayToXml($args);
@@ -109,7 +107,7 @@ class WechatPay extends WechatBase
      * 统一下单, <a href="https://pay.weixin.qq.com/wiki/doc/api/wxa/wxa_api.php?chapter=9_1">
      * https://pay.weixin.qq.com/wiki/doc/api/wxa/wxa_api.php?chapter=9_1</a>
      *
-     * @param array $args
+     * @param array $args ['body', 'out_trade_no', 'total_fee', 'notify_url', 'trade_type', 'openid']
      * @return array
      * @throws WechatException
      */
@@ -125,7 +123,7 @@ class WechatPay extends WechatBase
      * 查询订单, <a href="https://pay.weixin.qq.com/wiki/doc/api/wxa/wxa_api.php?chapter=9_2">
      * https://pay.weixin.qq.com/wiki/doc/api/wxa/wxa_api.php?chapter=9_2</a>
      *
-     * @param array $args
+     * @param array $args ['out_trade_no']
      * @return array
      * @throws WechatException
      */
@@ -161,6 +159,8 @@ class WechatPay extends WechatBase
      */
     public function refund($args)
     {
+        $args['appid'] = !empty($args['appid']) ? $args['appid'] : $this->appId;
+        $args['mch_id'] = !empty($args['mch_id']) ? $args['mch_id'] : $this->mchId;
         $api = 'https://api.mch.weixin.qq.com/secapi/pay/refund';
         return $this->sendWithPem($api, $args);
     }
@@ -185,12 +185,16 @@ class WechatPay extends WechatBase
      * 企业付款, <a href="https://pay.weixin.qq.com/wiki/doc/api/tools/mch_pay.php?chapter=14_2">
      * https://pay.weixin.qq.com/wiki/doc/api/tools/mch_pay.php?chapter=14_2</a>
      *
-     * @param array $args
+     * @param array $args ['partner_trade_no', 'openid', 'amount', 'desc']
      * @return array
      * @throws WechatException
      */
     public function transfers($args)
     {
+        $args['mch_appid'] = !empty($args['mch_appid']) ? $args['mch_appid'] : $this->appId;
+        $args['mchid'] = !empty($args['mchid']) ? $args['mchid'] : $this->mchId;
+        $args['spbill_create_ip'] = !empty($args['spbill_create_ip']) ? $args['spbill_create_ip'] : '127.0.0.1';
+        $args['check_name'] = !empty($args['check_name']) ? $args['check_name'] : 'NO_CHECK';
         $api = 'https://api.mch.weixin.qq.com/mmpaymkttransfers/promotion/transfers';
         return $this->sendWithPem($api, $args);
     }
@@ -200,13 +204,15 @@ class WechatPay extends WechatBase
      * 查询企业付款, <a href="https://pay.weixin.qq.com/wiki/doc/api/tools/mch_pay.php?chapter=14_3">
      * https://pay.weixin.qq.com/wiki/doc/api/tools/mch_pay.php?chapter=14_3</a>
      *
-     * @param array $args
+     * @param array $args ['partner_trade_no']
      * @return array
      * @throws WechatException
      */
     public function getTransferInfo($args)
     {
-        $api = '	https://api.mch.weixin.qq.com/mmpaymkttransfers/gettransferinfo';
+        $args['appid'] = !empty($args['appid']) ? $args['appid'] : $this->appId;
+        $args['mch_id'] = !empty($args['mch_id']) ? $args['mch_id'] : $this->mchId;
+        $api = 'https://api.mch.weixin.qq.com/mmpaymkttransfers/gettransferinfo';
         return $this->sendWithPem($api, $args);
     }
 
@@ -221,6 +227,7 @@ class WechatPay extends WechatBase
      */
     public function payBank($args)
     {
+        $args['mch_id'] = !empty($args['mch_id']) ? $args['mch_id'] : $this->mchId;
         $api = 'https://api.mch.weixin.qq.com/mmpaysptrans/pay_bank';
         return $this->sendWithPem($api, $args);
     }
@@ -236,6 +243,7 @@ class WechatPay extends WechatBase
      */
     public function queryBank($args)
     {
+        $args['mch_id'] = !empty($args['mch_id']) ? $args['mch_id'] : $this->mchId;
         $api = 'https://api.mch.weixin.qq.com/mmpaysptrans/query_bank';
         return $this->sendWithPem($api, $args);
     }

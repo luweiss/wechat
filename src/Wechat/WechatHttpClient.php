@@ -11,26 +11,23 @@
 namespace luweiss\Wechat;
 
 
-use luweiss\Curl\Curl;
-use luweiss\Curl\CurlException;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ClientException;
 
 /**
  * Class WechatHttpClient
  * @package luweiss\Wechat
- * @property Curl $curl
  */
 class WechatHttpClient
 {
     const DATA_TYPE_JSON = 'json';
     const DATA_TYPE_XML = 'xml';
 
-    private $curl;
     public $dataType = 'json';
+    public $urlEncodeQueryString = true;
 
-    public function __construct()
-    {
-        $this->curl = new Curl();
-    }
+    private $sslCertPemFile;
+    private $sslKeyPemFile;
 
     public function setDataType($dataType)
     {
@@ -40,15 +37,13 @@ class WechatHttpClient
 
     public function setCertPemFile($file)
     {
-        $this->curl->setOption(CURLOPT_SSLCERTTYPE, 'PEM');
-        $this->curl->setOption(CURLOPT_SSLCERT, $file);
+        $this->sslCertPemFile = $file;
         return $this;
     }
 
     public function setKeyPemFile($file)
     {
-        $this->curl->setOption(CURLOPT_SSLCERTTYPE, 'PEM');
-        $this->curl->setOption(CURLOPT_SSLKEY, $file);
+        $this->sslKeyPemFile = $file;
         return $this;
     }
 
@@ -61,8 +56,7 @@ class WechatHttpClient
     public function get($url, $params = [])
     {
         return $this->curlSend([
-            'url' => $url,
-            'params' => $params,
+            'url' => $this->appendParams($url, $params),
         ], 'get');
     }
 
@@ -76,9 +70,8 @@ class WechatHttpClient
     public function post($url, $data = [], $params = [])
     {
         return $this->curlSend([
-            'url' => $url,
+            'url' => $this->appendParams($url, $params),
             'data' => $data,
-            'params' => $params,
         ], 'post');
     }
 
@@ -92,16 +85,19 @@ class WechatHttpClient
     {
         $errorCodes = require __DIR__ . '/errors.php';
         try {
-            $curl = $this->curl;
             if ($type === 'post') {
-                $response = $curl->post($args['url'], $args['data'], $args['params']);
+                $response = $this->getClient()->post($args['url'], [
+                    'body' => $args['data']
+                ]);
             } else {
-                $response = $curl->get($args['url'], $args['params']);
+                $response = $this->getClient()->get($args['url'], [
+                ]);
             }
-            if ($response->headers['http_code'] !== 200) {
-                throw new CurlException($response->headers['http_code_status']);
+
+            if ($response->getStatusCode() !== 200) {
+                throw new WechatException($response->getStatusCode());
             }
-            $body = $response->body;
+            $body = $response->getBody();
             if ($this->dataType === static::DATA_TYPE_JSON) {
                 $result = json_decode($body, true);
                 if (!$result) {
@@ -120,10 +116,58 @@ class WechatHttpClient
                 throw new WechatException('errCode ' . $result['errcode'] . ($errMsg ? (', ' . $errMsg) : ''));
             }
             return $result;
-        } catch (CurlException $exception) {
-            throw new WechatException($exception->getMessage(), 0, $exception);
         } catch (WechatException $exception) {
             throw $exception;
         }
+    }
+
+    private function paramsToQueryString($params = [])
+    {
+        if (!is_array($params)) {
+            return '';
+        }
+        if (!count($params)) {
+            return '';
+        }
+        $str = '';
+        foreach ($params as $k => $v) {
+            if ($this->urlEncodeQueryString) {
+                $v = urlencode($v);
+            }
+            $str .= "{$k}={$v}&";
+        }
+        return trim($str, '&');
+    }
+
+    private function appendParams($url, $params = [])
+    {
+        if (!is_array($params)) {
+            return $url;
+        }
+        if (!count($params)) {
+            return $url;
+        }
+        $url = trim($url, '?');
+        $url = trim($url, '&');
+        $queryString = $this->paramsToQueryString($params);
+        if (mb_stripos($url, '?')) {
+            return $url . '&' . $queryString;
+        } else {
+            return $url . '?' . $queryString;
+        }
+    }
+
+    private function getClient()
+    {
+        $options = [
+            'verify' => false,
+        ];
+        if ($this->sslCertPemFile) {
+            $options['cert'] = $this->sslCertPemFile;
+        }
+        if ($this->sslKeyPemFile) {
+            $options['ssl_key'] = $this->sslKeyPemFile;
+        }
+        return new Client($options);
     }
 }
