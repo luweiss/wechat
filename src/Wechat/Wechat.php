@@ -20,7 +20,6 @@ use Doctrine\Common\Cache\RedisCache;
 /**
  * Class Wechat
  * @package luweiss\Wechat
- * @property Cache $cache
  */
 class Wechat extends WechatBase
 {
@@ -28,11 +27,13 @@ class Wechat extends WechatBase
     const CACHE_TARGET_REDIS = 'redis';
     const CACHE_TARGET_MEMCACHED = 'memcached';
     const CACHE_TARGET_APCU = 'apcu';
+
     public $appId;
     public $appSecret;
-
     public $cache;
 
+    /** @var Cache $cacheObject */
+    private $cacheObject;
     private $accessToken;
     private $accessTokenOk;
 
@@ -65,33 +66,33 @@ class Wechat extends WechatBase
     private function setCacheComponent()
     {
         if (!$this->cache) {
-            $this->cache = new FilesystemCache(dirname(dirname(__DIR__)) . '/runtime/cache');
+            $this->cacheObject = new FilesystemCache(dirname(dirname(__DIR__)) . '/runtime/cache');
         }
         $target = !empty($this->cache['target']) ? $this->cache['target'] : static::CACHE_TARGET_FILE;
         switch ($target) {
             case static::CACHE_TARGET_FILE:
                 $dir = !empty($this->cache['dir']) ?
                     $this->cache['dir'] : (dirname(dirname(__DIR__)) . '/runtime/cache');
-                $this->cache = new FilesystemCache($dir);
+                $this->cacheObject = new FilesystemCache($dir);
                 break;
             case static::CACHE_TARGET_REDIS:
                 $host = !empty($this->cache['host']) ? $this->cache['host'] : '127.0.0.1';
                 $port = !empty($this->cache['port']) ? $this->cache['port'] : 6379;
                 $redis = new \Redis();
                 $redis->connect($host, $port);
-                $this->cache = new RedisCache();
-                $this->cache->setRedis($redis);
+                $this->cacheObject = new RedisCache();
+                $this->cacheObject->setRedis($redis);
                 break;
             case static::CACHE_TARGET_MEMCACHED:
                 $host = !empty($this->cache['host']) ? $this->cache['host'] : '127.0.0.1';
                 $port = !empty($this->cache['port']) ? $this->cache['port'] : 6379;
                 $memcached = new \Memcached();
                 $memcached->addServer($host, $port);
-                $this->cache = new MemcachedCache();
-                $this->cache->setMemcached($memcached);
+                $this->cacheObject = new MemcachedCache();
+                $this->cacheObject->setMemcached($memcached);
                 break;
             case static::CACHE_TARGET_APCU:
-                $this->cache = new ApcuCache();
+                $this->cacheObject = new ApcuCache();
                 break;
             default:
                 throw new WechatException('无效的cache target `' . $target . '`。');
@@ -133,7 +134,7 @@ class Wechat extends WechatBase
         }
         $cacheKey = 'ACCESS_TOKEN_OF_APPID-' . $this->appId;
         if (!$refresh) {
-            $this->accessToken = $this->cache->fetch($cacheKey);
+            $this->accessToken = $this->cacheObject->fetch($cacheKey);
             if ($this->accessToken && $this->checkAccessToken()) {
                 return $this->accessToken;
             }
@@ -143,7 +144,7 @@ class Wechat extends WechatBase
             . '&secret=' . $this->appSecret;
         $res = $this->getClient()->get($api);
         $this->accessToken = $res['access_token'];
-        $this->cache->save($cacheKey, $this->accessToken, 7000);
+        $this->cacheObject->save($cacheKey, $this->accessToken, 7000);
         return $this->accessToken;
     }
 
@@ -153,13 +154,14 @@ class Wechat extends WechatBase
      */
     private function checkAccessToken()
     {
-        if (!$this->accessToken)
+        if (!$this->accessToken) {
             return false;
+        }
         if ($this->accessTokenOk) {
             return $this->accessTokenOk;
         }
         $cacheKey = 'CHECK_ACCESS_TOKEN_OF_TOKEN-' . $this->accessToken;
-        $this->accessTokenOk = $this->cache->fetch($cacheKey);
+        $this->accessTokenOk = $this->cacheObject->fetch($cacheKey);
         if ($this->accessTokenOk) {
             return $this->accessTokenOk;
         }
@@ -167,7 +169,7 @@ class Wechat extends WechatBase
         try {
             $this->getClient()->get($api);
             $this->accessTokenOk = true;
-            $this->cache->save($cacheKey, true, 180);
+            $this->cacheObject->save($cacheKey, true, 180);
         } catch (\Exception $e) {
             $this->accessTokenOk = false;
         }
