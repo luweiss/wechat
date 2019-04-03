@@ -79,6 +79,9 @@ class Wechat extends WechatBase
                 $host = !empty($this->cache['host']) ? $this->cache['host'] : '127.0.0.1';
                 $port = !empty($this->cache['port']) ? $this->cache['port'] : 6379;
                 $redis = new \Redis();
+                if (!empty($this->cache['password'])) {
+                    $redis->auth($this->cache['password']);
+                }
                 $redis->connect($host, $port);
                 $this->cacheObject = new RedisCache();
                 $this->cacheObject->setRedis($redis);
