@@ -90,6 +90,9 @@ class Wechat extends WechatBase
                 $host = !empty($this->cache['host']) ? $this->cache['host'] : '127.0.0.1';
                 $port = !empty($this->cache['port']) ? $this->cache['port'] : 6379;
                 $memcached = new \Memcached();
+                if (!empty($this->cache['username']) && !empty($this->cache['password'])) {
+                    $memcached->setSaslAuthData($this->cache['username'], $this->cache['password']);
+                }
                 $memcached->addServer($host, $port);
                 $this->cacheObject = new MemcachedCache();
                 $this->cacheObject->setMemcached($memcached);
