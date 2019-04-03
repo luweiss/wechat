@@ -175,4 +175,25 @@ class Wechat extends WechatBase
         }
         return $this->accessTokenOk;
     }
+
+    private function jsCodeToSession($code)
+    {
+        $api = "https://api.weixin.qq.com/sns/jscode2session?appid={$this->appId}&secret={$this->appSecret}&js_code={$code}&grant_type=authorization_code";
+        return $this->getClient()->get($api);
+    }
+
+    public function decryptData($encryptedData, $iv, $code)
+    {
+        if (mb_strlen($iv) !== 24) {
+            throw new WechatException('iv长度不正确，必须是24位。');
+        }
+        $sessionData = $this->jsCodeToSession($code);
+        $sessionKey = $sessionData['session_key'];
+        $aesKey = base64_decode($sessionKey);
+        $aesIV = base64_decode($iv);
+        $aesCipher = base64_decode($encryptedData);
+        $result = openssl_decrypt($aesCipher, "AES-128-CBC", $aesKey, 1, $aesIV);
+        $dataObj = json_decode($result, true);
+        return $dataObj;
+    }
 }
