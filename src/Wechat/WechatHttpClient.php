@@ -112,7 +112,8 @@ class WechatHttpClient
                 $errMsg = isset($errorCodes[$result['errcode']]) ?
                     $errorCodes[$result['errcode']]
                     : (isset($result['errmsg']) ? $result['errmsg'] : '');
-                throw new WechatException('errCode ' . $result['errcode'] . ($errMsg ? (', ' . $errMsg) : ''));
+                $message = 'errCode ' . $result['errcode'] . ($errMsg ? (', ' . $errMsg) : '');
+                throw new WechatException($message, 0, null, $result);
             }
             return $result;
         } catch (WechatException $exception) {

@@ -52,7 +52,7 @@ class WechatPay extends WechatBase
         }
         if ($result['return_code'] !== 'SUCCESS') {
             $msg = 'returnCode: ' . $result['return_code'] . ', returnMsg: ' . $result['return_msg'];
-            throw new WechatException($msg);
+            throw new WechatException($msg, 0, null, $result);
         }
         if (!isset($result['result_code'])) {
             throw new WechatException(
@@ -61,7 +61,7 @@ class WechatPay extends WechatBase
         }
         if ($result['result_code'] !== 'SUCCESS') {
             $msg = 'errCode: ' . $result['err_code'] . ', errCodeDes: ' . $result['err_code_des'];
-            throw new WechatException($msg);
+            throw new WechatException($msg, 0, null, $result);
         }
         return $result;
     }
