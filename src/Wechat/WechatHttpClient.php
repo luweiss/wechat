@@ -19,10 +19,13 @@ use GuzzleHttp\Client;
  */
 class WechatHttpClient
 {
+    const POST_DATA_TYPE_BODY = 'body';
+    const POST_DATA_TYPE_FORM_PARAMS = 'form_params';
     const DATA_TYPE_JSON = 'json';
     const DATA_TYPE_XML = 'xml';
 
     public $dataType = 'json';
+    public $postDataType = 'body';
     public $urlEncodeQueryString = true;
 
     private $sslCertPemFile;
@@ -31,6 +34,12 @@ class WechatHttpClient
     public function setDataType($dataType)
     {
         $this->dataType = $dataType;
+        return $this;
+    }
+
+    public function setPostDataType($dataType)
+    {
+        $this->postDataType = $dataType;
         return $this;
     }
 
@@ -61,7 +70,7 @@ class WechatHttpClient
 
     /**
      * @param $url
-     * @param array $data
+     * @param array|string $data
      * @param array $params
      * @return mixed
      * @throws WechatException
@@ -85,9 +94,18 @@ class WechatHttpClient
         $errorCodes = require __DIR__ . '/errors.php';
         try {
             if ($type === 'post') {
-                $response = $this->getClient()->post($args['url'], [
-                    'body' => $args['data']
-                ]);
+                $data = [];
+                switch ($this->postDataType) {
+                    case self::POST_DATA_TYPE_BODY:
+                        $data['body'] = $args['data'];
+                        break;
+                    case self::POST_DATA_TYPE_FORM_PARAMS:
+                        $data['form_params'] = $args['data'];
+                        break;
+                    default:
+                        throw new WechatException('post暂不支持' . $this->postDataType . '请求方式');
+                }
+                $response = $this->getClient()->post($args['url'], $data);
             } else {
                 $response = $this->getClient()->get($args['url'], [
                 ]);
