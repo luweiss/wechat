@@ -16,7 +16,7 @@ abstract class WechatBase
     /**
      * @return WechatHttpClient
      */
-    protected function getClient()
+    public function getClient()
     {
         return new WechatHttpClient();
     }
